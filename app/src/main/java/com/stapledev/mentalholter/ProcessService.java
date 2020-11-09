@@ -1,7 +1,12 @@
 package com.stapledev.mentalholter;
 
 import android.Manifest;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.ImageFormat;
@@ -18,6 +23,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.nio.ByteBuffer;
@@ -32,6 +38,9 @@ public class ProcessService extends Service {
     CameraDevice cameraDevice;
     CameraCaptureSession session;
     ImageReader imageReader;
+    private NotificationManager manager;
+
+
 
     protected CameraDevice.StateCallback cameraStateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -127,13 +136,46 @@ public class ProcessService extends Service {
 
         readyCamera();
 
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
     }
 
     @Override
     public void onCreate() {
         Log.d(TAG,"onCreate service");
+        showNotification(this,"Работает","Идет обработка", new Intent());
         super.onCreate();
+    }
+
+    public void showNotification(Context context, String title, String body, Intent intent) {
+        manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        int notificationId = 1;
+        String channelId = "channel-01";
+        String channelName = "Channel Name";
+        int importance = NotificationManager.IMPORTANCE_HIGH;
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel mChannel = new NotificationChannel(
+                    channelId, channelName, importance);
+            manager.createNotificationChannel(mChannel);
+        }
+
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, channelId)
+                .setOngoing(true)
+                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setContentTitle(title)
+                .setContentText(body);
+
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+        stackBuilder.addNextIntent(intent);
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(
+                0,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
+        mBuilder.setContentIntent(resultPendingIntent);
+
+        manager.notify(notificationId, mBuilder.build());
+        startForeground(notificationId,mBuilder.build());
     }
 
     public void actOnReadyCameraDevice()
