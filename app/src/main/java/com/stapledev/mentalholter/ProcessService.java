@@ -69,7 +69,7 @@ public class ProcessService extends Service {
             try {
                 session.setRepeatingRequest(createCaptureRequest(), null, null);
                 cameraCaptureStartTime = System.currentTimeMillis ();
-            } catch (CameraAccessException e) {
+            } catch (Exception e) {
                 Log.e(TAG, e.getMessage());
             }
         }

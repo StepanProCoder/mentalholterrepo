@@ -14,6 +14,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,6 +33,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 public class MainActivity extends Activity {
 
     ImageView img;
+    Button startbtn,stopbtn;
     Intent intentService;
     Matrix matrix;
 
@@ -49,7 +51,7 @@ public class MainActivity extends Activity {
         matrix = new Matrix();
         matrix.postRotate(90);
 
-        if(loadText("address").isEmpty() && loadText("time").isEmpty())
+        if(loadText("address").isEmpty())
         {
             setContentView(R.layout.start_layout);
             Button startbtn = findViewById(R.id.startbtn);
@@ -61,24 +63,8 @@ public class MainActivity extends Activity {
                     if(!addressfield.getText().toString().isEmpty()) {
                         saveText(addressfield.getText().toString(),"address");
                         Toast.makeText(getApplicationContext(),"ГОТОВО",Toast.LENGTH_SHORT).show();
-
-
-                        //Toast.makeText(getApplicationContext(),loadText("address").split("/")[0],Toast.LENGTH_SHORT).show();
-                        setContentView(R.layout.activity_main);
-
-                        img = findViewById(R.id.img);
-
-                        LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(messageReceiver, new IntentFilter("com.stapledev.mentalholter.intent.action.img"));
-
-                        if(!isMyServiceRunning(ProcessService.class)) {
-                            intentService = new Intent(getApplicationContext(), ProcessService.class);
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                startForegroundService(intentService);
-
-                            } else {
-                                startService(intentService);
-                            }
-                        }
+                        saveText("true","start");
+                        finish();
 
                     }
                     else
@@ -93,20 +79,53 @@ public class MainActivity extends Activity {
 
             //Toast.makeText(getApplicationContext(),loadText("address").split("/")[0],Toast.LENGTH_SHORT).show();
             setContentView(R.layout.activity_main);
-
             img = findViewById(R.id.img);
-
+            startbtn = findViewById(R.id.startbtn);
+            stopbtn = findViewById(R.id.stopbtn);
+            startbtn.setEnabled(Boolean.parseBoolean(loadText("start")));
+            stopbtn.setEnabled(!Boolean.parseBoolean(loadText("start")));
             LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("com.stapledev.mentalholter.intent.action.img"));
 
-            if(!isMyServiceRunning(ProcessService.class)) {
-                intentService = new Intent(getApplicationContext(), ProcessService.class);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intentService);
 
-                } else {
-                    startService(intentService);
+            startbtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    saveText("false", "start");
+                    startbtn.setEnabled(false);
+                    stopbtn.setEnabled(true);
+
+                    if(!isMyServiceRunning(ProcessService.class)) {
+                        intentService = new Intent(getApplicationContext(), ProcessService.class);
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(intentService);
+
+                        } else {
+                            startService(intentService);
+                        }
+                    }
+
                 }
-            }
+            });
+
+            stopbtn.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    saveText("true", "start");
+                    startbtn.setEnabled(true);
+                    stopbtn.setEnabled(false);
+
+                    if(isMyServiceRunning(ProcessService.class)) {
+                        intentService = new Intent(getApplicationContext(), ProcessService.class);
+                        stopService(intentService);
+                    }
+
+
+                }
+            });
+
+
         }
 
     }
@@ -142,11 +161,11 @@ public class MainActivity extends Activity {
         return false;
     }
 
-    void saveText(String address,String name) {
+    void saveText(String value,String name) {
         SharedPreferences sPref;
         sPref = getApplicationContext().getSharedPreferences(name,Context.MODE_PRIVATE);
         SharedPreferences.Editor ed = sPref.edit();
-        ed.putString(name, address);
+        ed.putString(name, value);
         ed.commit();
 
     }
@@ -167,7 +186,15 @@ public class MainActivity extends Activity {
                 Log.d("BYTES", bytes.length + "");
                 Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
                 bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+
+                try {
+                    ((BitmapDrawable) img.getDrawable()).getBitmap().recycle();
+                }
+                catch (NullPointerException e){}
+
                 img.setImageBitmap(bitmap);
+
+
             }
 
         }
