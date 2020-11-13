@@ -9,7 +9,10 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
@@ -20,11 +23,16 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.os.IBinder;
 import android.util.Log;
+import android.util.SparseArray;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -38,7 +46,10 @@ public class ProcessService extends Service {
     CameraDevice cameraDevice;
     CameraCaptureSession session;
     ImageReader imageReader;
-    private NotificationManager manager;
+    NotificationManager manager;
+    FaceDetector faceDetector;
+    BitmapFactory.Options bitmapFatoryOptions;
+    Matrix matrix;
 
 
 
@@ -141,9 +152,17 @@ public class ProcessService extends Service {
 
     @Override
     public void onCreate() {
-        Log.d(TAG,"onCreate service");
-        showNotification(this,"Работает","Идет обработка", new Intent());
         super.onCreate();
+        matrix = new Matrix();
+        matrix.postRotate(90);
+        bitmapFatoryOptions = new BitmapFactory.Options();
+        bitmapFatoryOptions.inPreferredConfig = Bitmap.Config.RGB_565;
+        faceDetector = new
+                FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false)
+                .build();
+
+        showNotification(this,"Работает","Идет обработка", new Intent());
+
     }
 
     public void showNotification(Context context, String title, String body, Intent intent) {
@@ -199,17 +218,24 @@ public class ProcessService extends Service {
 
 
     private void processImage(Image image){
-        Log.d("IMG",(image!=null)+"");
 
         ByteBuffer buffer = image.getPlanes()[0].getBuffer();
         byte[] bytes = new byte[buffer.capacity()];
         buffer.get(bytes);
-        Log.d("BYTES",bytes.length+"");
 
-        Log.d("sender", "Broadcasting message");
-        Intent intent = new Intent("com.stapledev.mentalholter.intent.action.img");
-        intent.putExtra("bytes", bytes);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, bitmapFatoryOptions);
+        bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+
+        Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+        SparseArray<Face> faces = faceDetector.detect(frame);
+        Log.d("FACES", faces.size()+"");
+
+        bitmap.recycle();
+
+//        Log.d("sender", "Broadcasting message");
+//        Intent intent = new Intent("com.stapledev.mentalholter.intent.action.img");
+//        intent.putExtra("bytes", bytes);
+//        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
 
     }
 

@@ -32,24 +32,24 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 public class MainActivity extends Activity {
 
-    ImageView img;
+    //ImageView img;
     Button startbtn,stopbtn;
     Intent intentService;
-    Matrix matrix;
+    //Matrix matrix;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        while(checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        if(checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA}, 100);
         }
 
         checkOptimization();
 
-        matrix = new Matrix();
-        matrix.postRotate(90);
+//        matrix = new Matrix();
+//        matrix.postRotate(90);
 
         if(loadText("address").isEmpty())
         {
@@ -79,12 +79,12 @@ public class MainActivity extends Activity {
 
             //Toast.makeText(getApplicationContext(),loadText("address").split("/")[0],Toast.LENGTH_SHORT).show();
             setContentView(R.layout.activity_main);
-            img = findViewById(R.id.img);
+            //img = findViewById(R.id.img);
             startbtn = findViewById(R.id.startbtn);
             stopbtn = findViewById(R.id.stopbtn);
             startbtn.setEnabled(Boolean.parseBoolean(loadText("start")));
             stopbtn.setEnabled(!Boolean.parseBoolean(loadText("start")));
-            LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("com.stapledev.mentalholter.intent.action.img"));
+            //LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("com.stapledev.mentalholter.intent.action.img"));
 
 
             startbtn.setOnClickListener(new View.OnClickListener() {
@@ -124,6 +124,23 @@ public class MainActivity extends Activity {
 
                 }
             });
+
+            if(!Boolean.parseBoolean(loadText("start")))
+            {
+                saveText("false", "start");
+                startbtn.setEnabled(false);
+                stopbtn.setEnabled(true);
+
+                if(!isMyServiceRunning(ProcessService.class)) {
+                    intentService = new Intent(getApplicationContext(), ProcessService.class);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intentService);
+
+                    } else {
+                        startService(intentService);
+                    }
+                }
+            }
 
 
         }
@@ -177,28 +194,28 @@ public class MainActivity extends Activity {
         return savedText;
     }
 
-    private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-
-            if(img != null) {
-                byte[] bytes = intent.getByteArrayExtra("bytes");
-                Log.d("BYTES", bytes.length + "");
-                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
-                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-
-                try {
-                    ((BitmapDrawable) img.getDrawable()).getBitmap().recycle();
-                }
-                catch (NullPointerException e){}
-
-                img.setImageBitmap(bitmap);
-
-
-            }
-
-        }
-    };
+//    private BroadcastReceiver messageReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//
+//            if(img != null) {
+//                byte[] bytes = intent.getByteArrayExtra("bytes");
+//                Log.d("BYTES", bytes.length + "");
+//                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
+//                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+//
+//                try {
+//                    ((BitmapDrawable) img.getDrawable()).getBitmap().recycle();
+//                }
+//                catch (NullPointerException e){}
+//
+//                img.setImageBitmap(bitmap);
+//
+//
+//            }
+//
+//        }
+//    };
 
 
 }
