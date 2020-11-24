@@ -33,7 +33,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 public class MainActivity extends Activity {
 
     //ImageView img;
-    Button startbtn,stopbtn;
+    Button startbtn;
     Intent intentService;
     //Matrix matrix;
 
@@ -81,9 +81,9 @@ public class MainActivity extends Activity {
             setContentView(R.layout.activity_main);
             //img = findViewById(R.id.img);
             startbtn = findViewById(R.id.startbtn);
-            stopbtn = findViewById(R.id.stopbtn);
+            //stopbtn = findViewById(R.id.stopbtn);
             startbtn.setEnabled(Boolean.parseBoolean(loadText("start")));
-            stopbtn.setEnabled(!Boolean.parseBoolean(loadText("start")));
+            //stopbtn.setEnabled(!Boolean.parseBoolean(loadText("start")));
             //LocalBroadcastManager.getInstance(this).registerReceiver(messageReceiver, new IntentFilter("com.stapledev.mentalholter.intent.action.img"));
 
 
@@ -91,14 +91,15 @@ public class MainActivity extends Activity {
                 @Override
                 public void onClick(View v) {
 
-                    saveText("false", "start");
-                    startbtn.setEnabled(false);
-                    stopbtn.setEnabled(true);
+                    //saveText("false", "start");
+                    //startbtn.setEnabled(false);
+                    //stopbtn.setEnabled(true);
 
                     if(!isMyServiceRunning(ProcessService.class)) {
                         intentService = new Intent(getApplicationContext(), ProcessService.class);
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             startForegroundService(intentService);
+                            finish();
 
                         } else {
                             startService(intentService);
@@ -108,39 +109,39 @@ public class MainActivity extends Activity {
                 }
             });
 
-            stopbtn.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    saveText("true", "start");
-                    startbtn.setEnabled(true);
-                    stopbtn.setEnabled(false);
-
-                    if(isMyServiceRunning(ProcessService.class)) {
-                        intentService = new Intent(getApplicationContext(), ProcessService.class);
-                        stopService(intentService);
-                    }
-
-
-                }
-            });
-
-            if(!Boolean.parseBoolean(loadText("start")))
-            {
-                saveText("false", "start");
-                startbtn.setEnabled(false);
-                stopbtn.setEnabled(true);
-
-                if(!isMyServiceRunning(ProcessService.class)) {
-                    intentService = new Intent(getApplicationContext(), ProcessService.class);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(intentService);
-
-                    } else {
-                        startService(intentService);
-                    }
-                }
-            }
+//            stopbtn.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View v) {
+//
+//                    saveText("true", "start");
+//                    startbtn.setEnabled(true);
+//                    stopbtn.setEnabled(false);
+//
+//                    if(isMyServiceRunning(ProcessService.class)) {
+//                        intentService = new Intent(getApplicationContext(), ProcessService.class);
+//                        stopService(intentService);
+//                    }
+//
+//
+//                }
+//            });
+//
+//            if(!Boolean.parseBoolean(loadText("start")))
+//            {
+//                saveText("false", "start");
+//                startbtn.setEnabled(false);
+//                stopbtn.setEnabled(true);
+//
+//                if(!isMyServiceRunning(ProcessService.class)) {
+//                    intentService = new Intent(getApplicationContext(), ProcessService.class);
+//                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//                        startForegroundService(intentService);
+//
+//                    } else {
+//                        startService(intentService);
+//                    }
+//                }
+//            }
 
 
         }

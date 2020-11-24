@@ -21,6 +21,7 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.media.Image;
 import android.media.ImageReader;
+import android.media.MediaPlayer;
 import android.os.IBinder;
 import android.util.Log;
 import android.util.SparseArray;
@@ -50,6 +51,8 @@ public class ProcessService extends Service {
     FaceDetector faceDetector;
     BitmapFactory.Options bitmapFatoryOptions;
     Matrix matrix;
+    int facecount = 0;
+    MediaPlayer found;
 
 
 
@@ -160,7 +163,7 @@ public class ProcessService extends Service {
         faceDetector = new
                 FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false)
                 .build();
-
+        found = MediaPlayer.create(getApplicationContext(), R.raw.personfound);
         showNotification(this,"Работает","Идет обработка", new Intent());
 
     }
@@ -229,6 +232,14 @@ public class ProcessService extends Service {
         Frame frame = new Frame.Builder().setBitmap(bitmap).build();
         SparseArray<Face> faces = faceDetector.detect(frame);
         Log.d("FACES", faces.size()+"");
+
+        if (faces.size() > facecount) {
+            if (!found.isPlaying()) {
+                found.start();
+            }
+        }
+
+        facecount = faces.size();
 
         bitmap.recycle();
 
