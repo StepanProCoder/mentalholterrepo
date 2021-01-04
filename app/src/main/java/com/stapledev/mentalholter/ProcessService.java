@@ -19,9 +19,12 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.Image;
 import android.media.ImageReader;
 import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.os.IBinder;
 import android.util.Log;
 import android.util.SparseArray;
@@ -29,18 +32,24 @@ import android.util.SparseArray;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class ProcessService extends Service {
 
     final int CAMERA_CALIBRATION_DELAY = 500;
+    private static final int RECORDER_SAMPLERATE = 8000;
+    private static int RECORDER_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
+    private static int RECORDER_AUDIO_ENCODING = AudioFormat.ENCODING_PCM_16BIT;
+    private static final int RECORDER_BPP = 16;
     final String TAG = "myLog";
     final int CAMERACHOICE = CameraCharacteristics.LENS_FACING_BACK;
     long cameraCaptureStartTime;
@@ -53,6 +62,18 @@ public class ProcessService extends Service {
     Matrix matrix;
     int facecount = 0;
     MediaPlayer found;
+    boolean check = true;
+    MediaRecorder recorder;
+
+    int bufferSizeInBytes;
+    int numberOfReadBytes = 0;
+    byte audioBuffer[];
+    boolean recording = false;
+    float tempFloatBuffer[] = new float[3];
+    int tempIndex = 0;
+    int totalReadBytes = 0;
+    byte totalByteBuffer[]  = new byte[60 * 44100 * 2];
+    AudioRecord audioRecorder;
 
 
 
@@ -156,6 +177,34 @@ public class ProcessService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        File root = new File("storage/emulated/0","MentalHolter");
+        if(!root.exists()) {
+            root.mkdirs();
+        }
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
+        recorder.setOutputFile("storage/emulated/0/MentalHolter/audio.wav");
+        try {
+            recorder.prepare();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        bufferSizeInBytes = AudioRecord.getMinBufferSize(RECORDER_SAMPLERATE,
+                RECORDER_CHANNELS,
+                RECORDER_AUDIO_ENCODING
+        );
+        audioBuffer = new byte[bufferSizeInBytes];
+        audioRecorder = new AudioRecord( MediaRecorder.AudioSource.MIC,
+                RECORDER_SAMPLERATE,
+                RECORDER_CHANNELS,
+                RECORDER_AUDIO_ENCODING,
+                bufferSizeInBytes
+        );
+        // Start Recording.
+        audioRecorder.startRecording();
+
         matrix = new Matrix();
         matrix.postRotate(90);
         bitmapFatoryOptions = new BitmapFactory.Options();
@@ -243,6 +292,13 @@ public class ProcessService extends Service {
 
         bitmap.recycle();
 
+        if(facecount == 0)
+        {
+            AnalyseSound();
+        }
+
+
+
 //        Log.d("sender", "Broadcasting message");
 //        Intent intent = new Intent("com.stapledev.mentalholter.intent.action.img");
 //        intent.putExtra("bytes", bytes);
@@ -266,6 +322,71 @@ public class ProcessService extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    void AnalyseSound()
+    {
+        float totalAbsValue = 0.0f;
+        short sample = 0;
+
+        numberOfReadBytes = audioRecorder.read( audioBuffer, 0, bufferSizeInBytes );
+
+        // Analyze Sound.
+        for( int i=0; i<bufferSizeInBytes; i+=2 )
+        {
+            sample = (short)( (audioBuffer[i]) | audioBuffer[i + 1] << 8 );
+            totalAbsValue += (float)Math.abs( sample ) / ((float)numberOfReadBytes/(float)2);
+        }
+
+        // Analyze temp buffer.
+        tempFloatBuffer[tempIndex%3] = totalAbsValue;
+        float temp                   = 0.0f;
+        for( int i=0; i<3; ++i )
+            temp += tempFloatBuffer[i];
+
+        if( (temp >=0 && temp <= 350) && recording == false )
+        {
+            Log.i("TAG", "1");
+            tempIndex++;
+
+        }
+
+        if( temp > 350 && recording == false )
+        {
+            Log.i("TAG", "2");
+            recording = true;
+        }
+
+        if( (temp >= 0 && temp <= 350) && recording == true && check)
+        {
+            Log.i("VOICE", "VOICE IS NEAR");
+            check = false;
+            recorder.start();
+
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    recorder.stop();
+                    //check = true;
+                }
+            };
+
+            new Timer().schedule(task, 5000);
+
+            tempIndex++;
+            recording = false;
+
+        }
+
+
+
+        // -> Recording sound here.
+        Log.i( "TAG", "Recording Sound." );
+        for( int i=0; i<numberOfReadBytes; i++)
+            totalByteBuffer[totalReadBytes + i] = audioBuffer[i];
+        totalReadBytes += numberOfReadBytes;
+
+        tempIndex++;
     }
 
 
