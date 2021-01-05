@@ -39,8 +39,10 @@ import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -79,8 +81,9 @@ public class ProcessService extends Service {
     Matrix matrix;
     int facecount = 0;
     MediaPlayer found;
+    MediaPlayer sendsound;
     boolean check = true;
-    MediaRecorder recorder;
+    MediaRecorder mediaRecorder;
 
     int bufferSizeInBytes;
     int numberOfReadBytes = 0;
@@ -93,6 +96,7 @@ public class ProcessService extends Service {
     AudioRecord audioRecorder;
     Properties properties;
     private Session mailsession;
+    int analyzecount = 0;
 
 
 
@@ -214,16 +218,7 @@ public class ProcessService extends Service {
         if(!root.exists()) {
             root.mkdirs();
         }
-        recorder = new MediaRecorder();
-        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
-        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.DEFAULT);
-        recorder.setOutputFile("storage/emulated/0/MentalHolter/audio.wav");
-        try {
-            recorder.prepare();
-        } catch (Exception e){
-            e.printStackTrace();
-        }
+
         bufferSizeInBytes = AudioRecord.getMinBufferSize(RECORDER_SAMPLERATE,
                 RECORDER_CHANNELS,
                 RECORDER_AUDIO_ENCODING
@@ -246,6 +241,7 @@ public class ProcessService extends Service {
                 FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false)
                 .build();
         found = MediaPlayer.create(getApplicationContext(), R.raw.personfound);
+        sendsound = MediaPlayer.create(getApplicationContext(), R.raw.strangeactivity);
         showNotification(this,"Работает","Идет обработка", new Intent());
 
     }
@@ -390,25 +386,38 @@ public class ProcessService extends Service {
             recording = true;
         }
 
-        if( (temp >= 0 && temp <= 350) && recording == true && check)
+        if( (temp >= 0 && temp <= 350) && recording == true)
         {
             Log.i("VOICE", "VOICE IS NEAR");
-            check = false;
-            recorder.start();
+            if(check) {
+                check = false;
+                startRecording();
 
-            TimerTask task = new TimerTask() {
-                @Override
-                public void run() {
-                    recorder.stop();
-                    SendEmail();
-                    //check = true;
-                }
-            };
+                TimerTask task = new TimerTask() {
+                    @Override
+                    public void run() {
+                        stopRecording();
 
-            new Timer().schedule(task, 5000);
+                        if (!sendsound.isPlaying()) {
+                            sendsound.start();
+                        }
 
-            tempIndex++;
-            recording = false;
+                        //todo if analyzecount
+                        SendEmail();
+                        check = true;
+                        analyzecount = 0;
+                    }
+                };
+
+                new Timer().schedule(task, 5000);
+
+                tempIndex++;
+                recording = false;
+            }
+            else
+            {
+                analyzecount++;
+            }
 
         }
 
@@ -446,7 +455,9 @@ public class ProcessService extends Service {
             mimeMessage.setContent(multipart);
 
             Transport.send(mimeMessage);
-        } catch (MessagingException e) {
+            source.getInputStream().close();
+            source.getOutputStream().close();
+        } catch (MessagingException | IOException e) {
             e.printStackTrace();
         }
     }
@@ -456,6 +467,26 @@ public class ProcessService extends Service {
         sPref = getApplicationContext().getSharedPreferences(name, MainActivity.MODE_PRIVATE);
         String savedText = sPref.getString(name, "");
         return savedText;
+    }
+
+    private void startRecording() {
+        mediaRecorder = new MediaRecorder();
+        mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        mediaRecorder.setOutputFile(getString(R.string.file));
+        try {
+            mediaRecorder.prepare();
+        } catch (IOException e) {
+            Log.e(TAG, "startRecording: ", e);
+        }
+        mediaRecorder.start();
+    }
+
+    private void stopRecording() {
+        mediaRecorder.stop();
+        mediaRecorder.release();
+        mediaRecorder = null;
     }
 
 }
