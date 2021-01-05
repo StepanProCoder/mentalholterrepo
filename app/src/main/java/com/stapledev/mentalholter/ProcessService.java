@@ -8,6 +8,7 @@ import android.app.Service;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -40,8 +41,24 @@ import com.google.android.gms.vision.face.FaceDetector;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.activation.FileDataSource;
+import javax.mail.BodyPart;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.PasswordAuthentication;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
 
 public class ProcessService extends Service {
 
@@ -74,6 +91,8 @@ public class ProcessService extends Service {
     int totalReadBytes = 0;
     byte totalByteBuffer[]  = new byte[60 * 44100 * 2];
     AudioRecord audioRecorder;
+    Properties properties;
+    private Session mailsession;
 
 
 
@@ -177,6 +196,20 @@ public class ProcessService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        properties = new Properties();
+        properties.put("mail.smtp.host", "smtp.gmail.com");
+        properties.put("mail.smtp.socketFactory.port", "465");
+        properties.put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory");
+        properties.put("mail.smtp.auth", "true");
+        properties.put("mail.smtp.port", "465");
+
+        mailsession = Session.getDefaultInstance(properties, new javax.mail.Authenticator() {
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(Utils.EMAIL, Utils.PASSWORD);
+            }
+        });
+
         File root = new File("storage/emulated/0","MentalHolter");
         if(!root.exists()) {
             root.mkdirs();
@@ -367,6 +400,7 @@ public class ProcessService extends Service {
                 @Override
                 public void run() {
                     recorder.stop();
+                    SendEmail();
                     //check = true;
                 }
             };
@@ -389,6 +423,39 @@ public class ProcessService extends Service {
         tempIndex++;
     }
 
+    private void SendEmail()
+    {
+        String email = loadText("address");
+        String subject = getString(R.string.subject);
+        String filename = getString(R.string.file);
 
+        BodyPart messageBodyPart = new MimeBodyPart();
+        Multipart multipart = new MimeMultipart();
+        MimeMessage mimeMessage = new MimeMessage(mailsession);
+        DataSource source = new FileDataSource(filename);
+
+        try {
+
+            messageBodyPart.setDataHandler(new DataHandler(source));
+            messageBodyPart.setFileName(filename);
+            multipart.addBodyPart(messageBodyPart);
+
+            mimeMessage.setFrom(new InternetAddress(Utils.EMAIL));
+            mimeMessage.addRecipients(Message.RecipientType.TO, String.valueOf(new InternetAddress(email)));
+            mimeMessage.setSubject(subject);
+            mimeMessage.setContent(multipart);
+
+            Transport.send(mimeMessage);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    String loadText(String name) {
+        SharedPreferences sPref;
+        sPref = getApplicationContext().getSharedPreferences(name, MainActivity.MODE_PRIVATE);
+        String savedText = sPref.getString(name, "");
+        return savedText;
+    }
 
 }
