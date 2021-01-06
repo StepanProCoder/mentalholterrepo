@@ -1,3 +1,2 @@
 rootProject.name='MentalHolter'
 include ':app'
-include ':openCVLibrary320'
