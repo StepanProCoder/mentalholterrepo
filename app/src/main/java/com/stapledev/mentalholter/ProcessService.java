@@ -82,18 +82,11 @@ public class ProcessService extends Service {
     int facecount = 0;
     MediaPlayer found;
     MediaPlayer sendsound;
-    boolean check = true;
     MediaRecorder mediaRecorder;
+    MediaRecorder checksoundlevel;
+    boolean check = true;
 
-    int bufferSizeInBytes;
-    int numberOfReadBytes = 0;
-    byte audioBuffer[];
-    boolean recording = false;
-    float tempFloatBuffer[] = new float[3];
-    int tempIndex = 0;
-    int totalReadBytes = 0;
-    byte totalByteBuffer[]  = new byte[60 * 44100 * 2];
-    AudioRecord audioRecorder;
+
     Properties properties;
     private Session mailsession;
     int analyzecount = 0;
@@ -219,19 +212,17 @@ public class ProcessService extends Service {
             root.mkdirs();
         }
 
-        bufferSizeInBytes = AudioRecord.getMinBufferSize(RECORDER_SAMPLERATE,
-                RECORDER_CHANNELS,
-                RECORDER_AUDIO_ENCODING
-        );
-        audioBuffer = new byte[bufferSizeInBytes];
-        audioRecorder = new AudioRecord( MediaRecorder.AudioSource.MIC,
-                RECORDER_SAMPLERATE,
-                RECORDER_CHANNELS,
-                RECORDER_AUDIO_ENCODING,
-                bufferSizeInBytes
-        );
-        // Start Recording.
-        audioRecorder.startRecording();
+        checksoundlevel = new MediaRecorder();
+        checksoundlevel.setAudioSource(MediaRecorder.AudioSource.MIC);
+        checksoundlevel.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        checksoundlevel.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        checksoundlevel.setOutputFile("storage/emulated/0/MentalHolter/checksound.3gpp");
+        try {
+            checksoundlevel.prepare();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        checksoundlevel.start();
 
         matrix = new Matrix();
         matrix.postRotate(90);
@@ -325,6 +316,10 @@ public class ProcessService extends Service {
         {
             AnalyseSound();
         }
+        else
+        {
+            analyzecount = 0;
+        }
 
 
 
@@ -355,81 +350,50 @@ public class ProcessService extends Service {
 
     void AnalyseSound()
     {
-        float totalAbsValue = 0.0f;
-        short sample = 0;
 
-        numberOfReadBytes = audioRecorder.read( audioBuffer, 0, bufferSizeInBytes );
+            double sound = checksoundlevel.getMaxAmplitude()/2700.0;
+            Log.d("SOUND",sound+"");
 
-        // Analyze Sound.
-        for( int i=0; i<bufferSizeInBytes; i+=2 )
-        {
-            sample = (short)( (audioBuffer[i]) | audioBuffer[i + 1] << 8 );
-            totalAbsValue += (float)Math.abs( sample ) / ((float)numberOfReadBytes/(float)2);
-        }
+            if(sound > 0.3 && sound < 1)
+            {
+                analyzecount++;
+                Log.d("ANALYZECOUNT", analyzecount+"");
+            }
 
-        // Analyze temp buffer.
-        tempFloatBuffer[tempIndex%3] = totalAbsValue;
-        float temp                   = 0.0f;
-        for( int i=0; i<3; ++i )
-            temp += tempFloatBuffer[i];
+            if(analyzecount > 10 && check)
+            {
 
-        if( (temp >=0 && temp <= 350) && recording == false )
-        {
-            Log.i("TAG", "1");
-            tempIndex++;
-
-        }
-
-        if( temp > 350 && recording == false )
-        {
-            Log.i("TAG", "2");
-            recording = true;
-        }
-
-        if( (temp >= 0 && temp <= 350) && recording == true)
-        {
-            Log.i("VOICE", "VOICE IS NEAR");
-            if(check) {
-                check = false;
                 startRecording();
 
                 TimerTask task = new TimerTask() {
-                    @Override
-                    public void run() {
-                        stopRecording();
+                @Override
+                public void run() {
+                    stopRecording();
+
+                    if(analyzecount > 70) {
 
                         if (!sendsound.isPlaying()) {
                             sendsound.start();
                         }
 
-                        //todo if analyzecount
                         SendEmail();
-                        check = true;
-                        analyzecount = 0;
+
                     }
-                };
 
-                new Timer().schedule(task, 5000);
+                    analyzecount = 0;
+                    check = true;
+                }
+            };
 
-                tempIndex++;
-                recording = false;
+            new Timer().schedule(task, 90000);
+            check = false;
+
             }
-            else
-            {
-                analyzecount++;
-            }
-
-        }
 
 
 
-        // -> Recording sound here.
-        Log.i( "TAG", "Recording Sound." );
-        for( int i=0; i<numberOfReadBytes; i++)
-            totalByteBuffer[totalReadBytes + i] = audioBuffer[i];
-        totalReadBytes += numberOfReadBytes;
 
-        tempIndex++;
+
     }
 
     private void SendEmail()
