@@ -3,24 +3,26 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/relativeLayout1"
     android:layout_width="fill_parent"
-    android:layout_height="fill_parent" >
+    android:layout_height="fill_parent"
+    android:background="@drawable/backgroundstart">
 
     <Button
         android:id="@+id/startbtn"
-        android:layout_width="match_parent"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true"
-        android:textSize="35sp"
-        android:text="СТАРТ" />
+        android:layout_marginTop="100dp"
+        android:background="@drawable/roundshapebtn"
+        android:drawableStart="@drawable/icon"
+        android:layout_centerHorizontal="true"/>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="50sp"
+        android:fontFamily="sans-serif-light"
         android:gravity="center"
         android:text="@string/text2"
-        android:textSize="30sp" />
+        android:textSize="30sp"/>
 
 </RelativeLayout>

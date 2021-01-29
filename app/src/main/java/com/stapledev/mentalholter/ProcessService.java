@@ -82,6 +82,7 @@ public class ProcessService extends Service {
     int facecount = 0;
     MediaPlayer found;
     MediaPlayer sendsound;
+    MediaPlayer nointernet;
     MediaRecorder mediaRecorder;
     MediaRecorder checksoundlevel;
     boolean check = true;
@@ -233,6 +234,7 @@ public class ProcessService extends Service {
                 .build();
         found = MediaPlayer.create(getApplicationContext(), R.raw.personfound);
         sendsound = MediaPlayer.create(getApplicationContext(), R.raw.strangeactivity);
+        nointernet = MediaPlayer.create(getApplicationContext(), R.raw.nointernet);
         showNotification(this,"Работает","Идет обработка", new Intent());
 
     }
@@ -253,7 +255,7 @@ public class ProcessService extends Service {
 
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(context, channelId)
                 .setOngoing(true)
-                .setSmallIcon(R.drawable.ic_launcher_background)
+                .setSmallIcon(R.drawable.icon)
                 .setContentTitle(title)
                 .setContentText(body);
 
@@ -354,7 +356,7 @@ public class ProcessService extends Service {
             double sound = checksoundlevel.getMaxAmplitude()/2700.0;
             Log.d("SOUND",sound+"");
 
-            if(sound > 0.3 && sound < 1)
+            if(sound > 0.3 && sound < 2.5)
             {
                 analyzecount++;
                 Log.d("ANALYZECOUNT", analyzecount+"");
@@ -370,11 +372,7 @@ public class ProcessService extends Service {
                 public void run() {
                     stopRecording();
 
-                    if(analyzecount > 70) {
-
-                        if (!sendsound.isPlaying()) {
-                            sendsound.start();
-                        }
+                    if(analyzecount > 45) {
 
                         SendEmail();
 
@@ -421,8 +419,15 @@ public class ProcessService extends Service {
             Transport.send(mimeMessage);
             source.getInputStream().close();
             source.getOutputStream().close();
+
+            if (!sendsound.isPlaying()) {
+                sendsound.start();
+            }
+
         } catch (MessagingException | IOException e) {
-            e.printStackTrace();
+            if (!nointernet.isPlaying()) {
+                nointernet.start();
+            }
         }
     }
 
