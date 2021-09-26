@@ -1,6 +1,7 @@
 package com.stapledev.mentalholter;
 
 import android.Manifest;
+import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -64,6 +65,7 @@ import javax.mail.internet.MimeMultipart;
 
 public class ProcessService extends Service {
 
+    private static final String ACTION_STOP_SERVICE = "action_stop_service";
     final int CAMERA_CALIBRATION_DELAY = 500;
     private static final int RECORDER_SAMPLERATE = 8000;
     private static int RECORDER_CHANNELS = AudioFormat.CHANNEL_IN_MONO;
@@ -186,7 +188,18 @@ public class ProcessService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand flags " + flags + " startId " + startId);
 
-        readyCamera();
+        if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
+            int notificationId = 1;
+
+            Log.d(TAG,"called to cancel service");
+            manager.cancel(notificationId);
+            stopForeground(true);
+            stopSelf();
+            System.exit(0);
+        }
+        else {
+            readyCamera();
+        }
 
         return START_STICKY;
     }
@@ -266,6 +279,11 @@ public class ProcessService extends Service {
                 PendingIntent.FLAG_UPDATE_CURRENT
         );
         mBuilder.setContentIntent(resultPendingIntent);
+
+        Intent stopSelf = new Intent(this, ProcessService.class);
+        stopSelf.setAction(this.ACTION_STOP_SERVICE);
+        PendingIntent pStopSelf = PendingIntent.getService(this, 0, stopSelf,PendingIntent.FLAG_CANCEL_CURRENT);
+        mBuilder.addAction(R.drawable.icon, "Остановить", pStopSelf);
 
         manager.notify(notificationId, mBuilder.build());
         startForeground(notificationId,mBuilder.build());
