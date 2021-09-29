@@ -1,7 +1,13 @@
 <resources>
     <string name="app_name">MentalHolter</string>
-    <string name="text">Нажимая "Начать работу", вы подтверждаете, что являетесь родственником/законным представителем/лечащим врачом больного и даете согласие на использование данного приложения, а также берёте всю ответственность на себя. STaple.Dev не хранит информацию о разговорах больного, а лишь передаёт её тому лицу, которое было указано.</string>
-    <string name="text2">После нажатия на кнопку запускайте приложение только после остановки сервиса. Сервис вынесен в автозапуск, и после перезагрузки он будет запущен самостоятельно.</string>
-    <string name="subject">Подозрительная активность</string>
+    <string name="done">DONE</string>
+    <string name="processing">Processing</string>
+    <string name="working">Working</string>
+    <string name="stop">Stop</string>
+    <string name="btn_start_text">Get started</string>
+    <string name="email_hint">Enter email</string>
+    <string name="text">By pressing "Get started" you confirm that you are a relative/healing doctor of the patient and you give permission for using this application and take all the responsibility. STaple.Dev does not store information about patient\'s conversations but only gives it to the person you have selected.</string>
+    <string name="text2">After pressing the button launch the application only after service stops. Service is in autorun mode and after reboot it launches by itself.</string>
+    <string name="subject">Suspicious activity</string>
     <string name="file">storage/emulated/0/MentalHolter/audio.mp4</string>
 </resources>

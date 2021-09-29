@@ -62,7 +62,7 @@ public class MainActivity extends Activity {
                 public void onClick(View v) {
                     if(!addressfield.getText().toString().isEmpty()) {
                         saveText(addressfield.getText().toString(),"address");
-                        Toast.makeText(getApplicationContext(),"ГОТОВО",Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(),getString(R.string.done),Toast.LENGTH_SHORT).show();
                         saveText("true","start");
                         finish();
 

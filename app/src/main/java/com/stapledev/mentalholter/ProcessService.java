@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -88,7 +89,6 @@ public class ProcessService extends Service {
     MediaRecorder mediaRecorder;
     MediaRecorder checksoundlevel;
     boolean check = true;
-
 
     Properties properties;
     private Session mailsession;
@@ -188,6 +188,7 @@ public class ProcessService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand flags " + flags + " startId " + startId);
 
+
         if (ACTION_STOP_SERVICE.equals(intent.getAction())) {
             int notificationId = 1;
 
@@ -245,10 +246,22 @@ public class ProcessService extends Service {
         faceDetector = new
                 FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false)
                 .build();
-        found = MediaPlayer.create(getApplicationContext(), R.raw.personfound);
-        sendsound = MediaPlayer.create(getApplicationContext(), R.raw.strangeactivity);
-        nointernet = MediaPlayer.create(getApplicationContext(), R.raw.nointernet);
-        showNotification(this,"Работает","Идет обработка", new Intent());
+
+
+        if(Locale.getDefault().getLanguage() == "ru")
+        {
+            found = MediaPlayer.create(getApplicationContext(), R.raw.personfound);
+            sendsound = MediaPlayer.create(getApplicationContext(), R.raw.strangeactivity);
+            nointernet = MediaPlayer.create(getApplicationContext(), R.raw.nointernet);
+        }
+        else
+        {
+            found = MediaPlayer.create(getApplicationContext(), R.raw.personfoundeng);
+            sendsound = MediaPlayer.create(getApplicationContext(), R.raw.strangeactivityeng);
+            nointernet = MediaPlayer.create(getApplicationContext(), R.raw.nointerneteng);
+        }
+
+        showNotification(this,getString(R.string.working),getString(R.string.processing), new Intent());
 
     }
 
@@ -283,7 +296,7 @@ public class ProcessService extends Service {
         Intent stopSelf = new Intent(this, ProcessService.class);
         stopSelf.setAction(this.ACTION_STOP_SERVICE);
         PendingIntent pStopSelf = PendingIntent.getService(this, 0, stopSelf,PendingIntent.FLAG_CANCEL_CURRENT);
-        mBuilder.addAction(R.drawable.icon, "Остановить", pStopSelf);
+        mBuilder.addAction(R.drawable.icon, getString(R.string.stop), pStopSelf);
 
         manager.notify(notificationId, mBuilder.build());
         startForeground(notificationId,mBuilder.build());
